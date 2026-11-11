@@ -1,0 +1,1 @@
+# mauban-chess-club
