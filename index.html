@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102b25">
+  <title>Mauban Chess Club</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#"><span class="brand-mark">♞</span><span><b>MAUBAN CHESS CLUB</b><small>Play • Learn • Compete • Improve</small></span></a>
+    <nav><a href="#tournaments">Tournaments</a><a href="#ratings">Local Ratings</a><a href="#members">Members</a></nav>
+    <div class="account" id="accountArea"><button class="btn btn-outline" id="showLogin">Member Login</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-copy"><p class="eyebrow">THE HOME OF CHESS IN MAUBAN</p><h1>Every move is a chance to <em>improve.</em></h1><p>Follow club tournaments, check pairings and standings, and track the progress of our growing chess community.</p><div class="hero-actions"><a class="btn btn-gold" href="#tournaments">View Tournaments</a><a class="btn btn-outline light" href="#ratings">Check Ratings</a></div></div>
+      <div class="hero-board" aria-hidden="true"><div class="board" id="heroBoard"></div><div class="board-note">THINK AHEAD. PLAY FAIR.</div></div>
+    </section>
+    <section class="stats" id="stats"><article><strong id="memberCount">—</strong><span>Approved Members</span></article><article><strong id="tournamentCount">—</strong><span>Tournaments</span></article><article><strong id="playerCount">—</strong><span>Rated Players</span></article></section>
+    <section class="section" id="tournaments"><div class="section-heading"><div><p class="eyebrow">ON THE BOARD</p><h2>Club Tournaments</h2></div><span class="muted">Schedules, pairings and results</span></div><div id="tournamentList" class="cards"><p class="muted">Loading tournaments…</p></div></section>
+    <section class="section section-soft" id="ratings"><div class="section-heading"><div><p class="eyebrow">TRACK YOUR PROGRESS</p><h2>Local Ratings</h2></div><input id="ratingSearch" class="search" placeholder="Search player or category…" aria-label="Search ratings"></div><div class="table-wrap"><table><thead><tr><th>Rank</th><th>Player</th><th>Category</th><th>Local Rating</th><th>Last Updated</th></tr></thead><tbody id="ratingRows"><tr><td colspan="5" class="muted">Loading ratings…</td></tr></tbody></table></div></section>
+    <section class="section" id="members"><div class="section-heading"><div><p class="eyebrow">OUR COMMUNITY</p><h2>Member Categories</h2></div></div><div class="category-grid"><article><span>01</span><h3>Elementary</h3><p>Building strong foundations and a love for chess.</p></article><article><span>02</span><h3>Secondary</h3><p>Developing discipline, strategy and competitive experience.</p></article><article><span>03</span><h3>OPEN</h3><p>A welcoming competitive space for all eligible club players.</p></article></div></section>
+    <section class="join-banner"><div><p class="eyebrow">YOUR NEXT MOVE STARTS HERE</p><h2>Want to be part of the club?</h2><p>Register for a member account. An administrator will review your application.</p></div><button class="btn btn-gold" id="showSignup">Register as Member</button></section>
+  </main>
+  <footer><span>© <span id="year"></span> Mauban Chess Club</span><span>Promoting chess • Sportsmanship • Grassroots development</span></footer>
+  <dialog id="authDialog"><form method="dialog" class="dialog-close"><button class="close" aria-label="Close">×</button></form><div id="authContent"></div></dialog>
+  <dialog id="adminDialog"><form method="dialog" class="dialog-close"><button class="close" aria-label="Close">×</button></form><div id="adminContent"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
