@@ -8,7 +8,50 @@ const state = { user: null, profile: null, ratings: [], tournaments: [], adminTa
 const pieces = ["♜","♞","♝","♛","♚","♝","♞","♜","♟","♟","♟","♟","♟","♟","♟","♟"];
 function toast(message){const el=$("toast");el.textContent=message;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),3000)}
 function board(){const b=$("heroBoard");if(!b)return;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const s=document.createElement("div");s.className="sq "+((r+c)%2?"dark":"light");if(r<2)s.textContent=pieces[r*8+c];if(r<2)s.style.color=r===0?"#17251f":"#f3eee2";b.append(s)}}
-function authForm(mode="login"){const signup=mode==="signup";$("authContent").innerHTML=`<p class="eyebrow">MAUBAN CHESS CLUB</p><h2 class="dialog-title">${signup?"Create member account":"Welcome back"}</h2><p class="form-note">${signup?"Register below. Your account will remain pending until approved by a club administrator.":"Sign in to access your member or administrator tools."}</p><form id="authForm">${signup?'<label class="field"><span>Full name</span><input name="full_name" required maxlength="100"></label><label class="field"><span>Category</span><select name="category" required><option value="Elementary">Elementary</option><option value="Secondary">Secondary</option><option value="OPEN">OPEN</option></select></label><label class="field"><span>Contact number (optional)</span><input name="contact" maxlength="30"></label>':''}<label class="field"><span>Email address</span><input name="email" type="email" required autocomplete="email"></label><label class="field"><span>Password</span><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}"></label><div class="form-actions"><button class="btn btn-gold" type="submit">${signup?"Submit Registration":"Sign In"}</button><button type="button" class="link-button" id="switchAuth">${signup?"I already have an account":"Create an account"}</button></div></form>${signup?'<p class="form-note">Use an email address you can access. Do not share your password with anyone.</p>':""}`;$("switchAuth").onclick=()=>authForm(signup?"login":"signup");$("authForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),email=f.get("email").trim(),password=f.get("password");try{if(signup){const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name:f.get("full_name"),category:f.get("category"),contact:f.get("contact")}}});if(error)throw error;$("authContent").innerHTML='<h2 class="dialog-title">Registration submitted</h2><p class="form-note">Check your email if confirmation is enabled. Your club membership is pending administrator approval.</p>';toast("Registration submitted");}else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error;$("authDialog").close();await loadSession();toast("Signed in successfully");}}catch(err){toast(err.message||"Unable to complete request")}}}
+async function resendSignupConfirmation(email, statusId){
+  const cleanEmail = String(email || "").trim();
+  const status = statusId ? $(statusId) : null;
+  if(!cleanEmail){if(status)status.textContent="Enter your email address first.";else toast("Enter your email address first.");return}
+  try{
+    if(status)status.textContent="Sending confirmation email...";
+    const {error}=await db.auth.resend({type:"signup",email:cleanEmail,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+    if(error)throw error;
+    if(status)status.textContent="A new confirmation email has been requested. Check your inbox and spam folder.";
+    toast("Confirmation email requested");
+  }catch(err){
+    const message=err.message||"Unable to resend confirmation email.";
+    if(status)status.textContent=message;else toast(message);
+  }
+}
+function showRegistrationSubmitted(email){
+  $("authContent").innerHTML=`<p class="eyebrow">MAUBAN CHESS CLUB</p><h2 class="dialog-title">Registration submitted</h2><p class="form-note">Your account registration has been received. If email confirmation is enabled, confirm your email before signing in. Membership approval is a separate step.</p><label class="field"><span>Email address</span><input id="confirmationEmail" type="email" value="${escapeHtml(email)}" autocomplete="email" required></label><div class="form-actions"><button class="btn btn-gold" type="button" id="resendConfirmation">Resend Confirmation Email</button><button class="link-button" type="button" id="backToLogin">Back to Sign In</button></div><p class="form-note" id="confirmationStatus" aria-live="polite"></p><p class="form-note">If you do not see the email, check your spam or junk folder.</p>`;
+  $("resendConfirmation").onclick=()=>resendSignupConfirmation($("confirmationEmail").value,"confirmationStatus");
+  $("backToLogin").onclick=()=>authForm("login");
+}
+function authForm(mode="login"){
+  const signup=mode==="signup";
+  $("authContent").innerHTML=`<p class="eyebrow">MAUBAN CHESS CLUB</p><h2 class="dialog-title">${signup?"Create member account":"Welcome back"}</h2><p class="form-note">${signup?"Register below. Your account will remain pending until approved by a club administrator.":"Sign in to access your member or administrator tools."}</p><form id="authForm">${signup?'<label class="field"><span>Full name</span><input name="full_name" required maxlength="100"></label><label class="field"><span>Category</span><select name="category" required><option value="Elementary">Elementary</option><option value="Secondary">Secondary</option><option value="OPEN">OPEN</option></select></label><label class="field"><span>Contact number (optional)</span><input name="contact" maxlength="30"></label>':''}<label class="field"><span>Email address</span><input name="email" type="email" required autocomplete="email"></label><label class="field"><span>Password</span><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}"></label><div class="form-actions"><button class="btn btn-gold" type="submit">${signup?"Submit Registration":"Sign In"}</button><button type="button" class="link-button" id="switchAuth">${signup?"I already have an account":"Create an account"}</button></div></form>${signup?'<p class="form-note">Use an email address you can access. Do not share your password with anyone.</p>':'<div class="form-actions"><button type="button" class="link-button" id="resendFromLogin">Resend Confirmation Email</button></div><p class="form-note" id="loginConfirmationStatus" aria-live="polite"></p>'}`;
+  $("switchAuth").onclick=()=>authForm(signup?"login":"signup");
+  if(!signup)$("resendFromLogin").onclick=()=>resendSignupConfirmation($('authForm').elements.email.value,"loginConfirmationStatus");
+  $("authForm").onsubmit=async e=>{
+    e.preventDefault();
+    const f=new FormData(e.currentTarget),email=f.get("email").trim(),password=f.get("password");
+    try{
+      if(signup){
+        const {error}=await db.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+window.location.pathname,data:{full_name:f.get("full_name"),category:f.get("category"),contact:f.get("contact")}}});
+        if(error)throw error;
+        showRegistrationSubmitted(email);
+        toast("Registration submitted");
+      }else{
+        const {error}=await db.auth.signInWithPassword({email,password});
+        if(error)throw error;
+        $("authDialog").close();
+        await loadSession();
+        toast("Signed in successfully");
+      }
+    }catch(err){toast(err.message||"Unable to complete request")}
+  };
+}
 async function loadSession(){if(!db){toast("Supabase client did not load. Refresh the page.");return}const {data:{session}}=await db.auth.getSession();state.user=session?.user||null;state.profile=null;if(state.user){const {data,error}=await db.from("profiles").select("*").eq("id",state.user.id).maybeSingle();if(!error)state.profile=data}renderAccount();loadPublicData()}
 function renderAccount(){const el=$("accountArea");if(!state.user){el.innerHTML='<button class="btn btn-outline" id="showLogin">Member Login</button>'; $("showLogin").onclick=()=>{authForm("login");$("authDialog").showModal()};return}const name=state.profile?.full_name||state.user.email;el.innerHTML=`<button class="btn btn-outline" id="accountButton">${escapeHtml(name.split(" ")[0])} ▾</button>`; $("accountButton").onclick=()=>{if(state.profile?.role==="admin"||state.profile?.role==="super_admin"){adminView()}else{const approved=state.profile?.status==="approved";$("authContent").innerHTML=`<p class="eyebrow">MEMBER ACCOUNT</p><h2 class="dialog-title">${escapeHtml(name)}</h2><p class="form-note">Membership status: <b>${escapeHtml(state.profile?.status||"pending")}</b></p><p class="form-note">${approved?"Your member account is approved. Watch this page for club announcements.":"Your registration is awaiting administrator approval."}</p><button class="btn btn-outline" id="signout">Sign Out</button>`;$("authDialog").showModal();$("signout").onclick=async()=>{await db.auth.signOut();$("authDialog").close();await loadSession()}}}}
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
